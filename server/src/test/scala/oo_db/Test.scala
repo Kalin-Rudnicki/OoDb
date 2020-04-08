@@ -1,6 +1,8 @@
 package oo_db
 
-import java.io.File
+import java.io.{File, RandomAccessFile}
+
+import oo_db.utils.{Bytable, BytableRAF}
 
 import scala.util.Random
 
@@ -29,7 +31,14 @@ object Test {
 	
 	def main(args: Array[String]): Unit = {
 		
-		testInsertionSpeed("res/test-1.bTree", 20, 10000, 100)
+		val file = new File("res/test-1.raf")
+		file.delete()
+		
+		val raf = new BytableRAF(file, "rw")
+		
+		raf.writeBytable(List(1L, 2L, 34567890L))
+		raf.seek(0)
+		println(raf.readBytable[Long](3))
 		
 	}
 	

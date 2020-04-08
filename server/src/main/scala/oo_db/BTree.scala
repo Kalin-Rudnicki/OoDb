@@ -3,9 +3,9 @@ package oo_db
 import java.io.File
 import java.io.RandomAccessFile
 
-import scalaz.syntax.std.boolean._
-import scalaz.std.option.optionSyntax._
 import scala.annotation.tailrec
+
+import scalaz.std.option.optionSyntax._
 
 class BTree(private val io: BTree.IoManager) {
 	
@@ -244,7 +244,25 @@ object BTree {
 		// Read
 		
 		private def readData: List[Long] = {
-			2.to(2 * order).map(_ => bTreeFile.readLong).toList
+			// TODO : This will probably not work probably on LE machines
+			@tailrec
+			def bytesToLongs(c: Int, t: Long, bytes: List[Byte], pLongs: List[Long]): List[Long] = bytes match {
+				case Nil =>
+					if (c == 0)
+						(t :: pLongs).reverse
+					else
+						throw new RuntimeException("Not a multiple of 8")
+				case bH :: bT =>
+					val nL: Long = (t << 8) | bH
+					if (c == 0)
+						bytesToLongs(7, 0, bT, nL :: pLongs)
+					else
+						bytesToLongs(c - 1, nL, bT, pLongs)
+			}
+			
+			val array: Array[Byte] = Array.ofDim(order * 16 - 1)
+			bTreeFile.readFully(array)
+			bytesToLongs(7, 0, array.toList, Nil)
 		}
 		
 		def readInternalNode(pos: Long): InternalNode = {
