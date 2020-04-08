@@ -16,6 +16,7 @@ object OoDbTestDriver {
 		
 		val maxNum = 10000000
 		
+		new File(path).delete()
 		val bTree: BTree = BTree.create(order, path)
 		
 		def test(key: Long, expVal: Option[Long]): Unit = {

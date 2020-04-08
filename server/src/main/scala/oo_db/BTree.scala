@@ -3,8 +3,9 @@ package oo_db
 import java.io.File
 import java.io.RandomAccessFile
 
-import scala.annotation.tailrec
+import oo_db.utils.BytableRAF
 
+import scala.annotation.tailrec
 import scalaz.std.option.optionSyntax._
 
 class BTree(private val io: BTree.IoManager) {
@@ -138,7 +139,7 @@ object BTree {
 		
 		// =====| Constructor |=====
 		
-		private val bTreeFile: RandomAccessFile = new RandomAccessFile(path, "rw")
+		private val bTreeFile: BytableRAF = new BytableRAF(new File(path), "rw")
 		
 		bTreeFile.seek(0)
 		if (bTreeFile.readInt() != BTree.MAGIC_NUMBER)
@@ -243,27 +244,9 @@ object BTree {
 		
 		// Read
 		
-		private def readData: List[Long] = {
-			// TODO : This will probably not work probably on LE machines
-			@tailrec
-			def bytesToLongs(c: Int, t: Long, bytes: List[Byte], pLongs: List[Long]): List[Long] = bytes match {
-				case Nil =>
-					if (c == 0)
-						(t :: pLongs).reverse
-					else
-						throw new RuntimeException("Not a multiple of 8")
-				case bH :: bT =>
-					val nL: Long = (t << 8) | bH
-					if (c == 0)
-						bytesToLongs(7, 0, bT, nL :: pLongs)
-					else
-						bytesToLongs(c - 1, nL, bT, pLongs)
-			}
-			
-			val array: Array[Byte] = Array.ofDim(order * 16 - 1)
-			bTreeFile.readFully(array)
-			bytesToLongs(7, 0, array.toList, Nil)
-		}
+		private def readData: List[Long] =
+			bTreeFile.readBytable[Long](order * 2 - 1)
+		
 		
 		def readInternalNode(pos: Long): InternalNode = {
 			bTreeFile.seek(pos)
@@ -332,7 +315,7 @@ object BTree {
 				case _: LeafNode => bTreeFile.writeByte(LEAF_NODE_MARKER)
 			}
 			
-			node.toList(order).foreach(bTreeFile.writeLong)
+			bTreeFile.writeBytable[Long](node.toList(order))
 		}
 		
 	}
