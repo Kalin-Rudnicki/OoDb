@@ -36,9 +36,15 @@ object Test {
 		
 		val raf = new BytableRAF(file, "rw")
 		
-		raf.writeBytable(List(1L, 2L, 34567890L))
+		implicit val b: Bytable[(Int, Long, Float)] = Bytable.tuple3Bytable(
+			Bytable.intBytable,
+			Bytable.longBytable,
+			Bytable.floatBytable
+		)
+		
+		raf.writeBytable((5, 10L, 57.43f))
 		raf.seek(0)
-		println(raf.readBytable[Long](3))
+		println(raf.readBytable)
 		
 	}
 	
