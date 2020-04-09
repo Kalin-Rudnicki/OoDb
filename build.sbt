@@ -5,7 +5,10 @@ lazy val global = project
 
 lazy val db = project
 	.in(file("db")).settings(
-	libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.30"
+	libraryDependencies ++= List(
+		"org.scalaz" %% "scalaz-core" % "7.2.30",
+		"org.rogach" %% "scallop" % "3.4.0"
+		)
 )
 
 

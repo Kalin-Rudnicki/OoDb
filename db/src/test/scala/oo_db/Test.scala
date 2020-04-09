@@ -1,72 +1,46 @@
 package oo_db
 
-import java.io.{File, RandomAccessFile}
-
-import oo_db.db.BTree
-import oo_db.utils.{Bytable, BytableRAF}
-
-import scala.util.Random
+import cli.ScallopUtils._
 
 object Test {
 	
-	def testInsertionSpeed(path: String, order: Int, testSize: Int, printEvery: Int): Unit = {
-		val file = new File(path)
-		file.delete()
-		
-		val bTree = BTree.create(order, path)
-		
-		val startT = System.currentTimeMillis
-		0.until(testSize).foreach(i => {
-			if (i % printEvery == 0)
-				println(s"#$i => ${System.currentTimeMillis - startT}ms")
+	class Conf(arguments: Seq[String]) extends MainConfReqSub(arguments) {
+		val speeds = new SubConf("speeds") {
+			val mode = choice(Seq("INSERT"), required = true)
 			
-			bTree.insert(Random.nextLong, 1L)
-		})
-		val endT = System.currentTimeMillis
-		
-		println
-		println(s"  Total time: ${endT - startT}ms")
-		println(s"Average time: ${(endT - startT).toDouble / testSize.toDouble}ms")
-		
-	}
-	
-	def testInsertionAndRetrievalSpeed(path: String, order: Int, testSize: Int, printEvery: Int): Unit = {
-		val file = new File(path)
-		file.delete()
-		
-		val bTree = BTree.create(order, path)
-		
-		val startT = System.currentTimeMillis
-		0.until(testSize).foreach(i => {
-			if (i % printEvery == 0)
-				println(s"#$i => ${System.currentTimeMillis - startT}ms")
+			override protected def onExec(): Unit = {
+				(mode.toOption: @unchecked) match {
+					case Some("INSERT") =>
+						println("Yay")
+				}
+			}
+		}
+		val test = new SubConf("test") {
+			val testSize = opt[Int](required = true, short = 's')
+			val debug = opt[Boolean](default = Some(false))
 			
-			bTree.insert(Random.nextLong, 1L)
-		})
-		val endT = System.currentTimeMillis
-		
-		println
-		println(s"  Total time: ${endT - startT}ms")
-		println(s"Average time: ${(endT - startT).toDouble / testSize.toDouble}ms")
-		
-		println
-		val startT2 = System.currentTimeMillis
-		0.until(testSize).foreach(i => {
-			if (i % printEvery == 0)
-				println(s"#$i => ${System.currentTimeMillis - startT2}ms")
+			validate(testSize)(s => {
+				if (s > 0)
+					Right(())
+				else
+					Left("test-size must be > 0")
+			})
 			
-			bTree.get(Random.nextLong)
-		})
-		val endT2 = System.currentTimeMillis
-		
-		println
-		println(s"  Total time: ${endT2 - startT2}ms")
-		println(s"Average time: ${(endT2 - startT2).toDouble / testSize.toDouble}ms")
+			override protected def onExec(): Unit = ???
+		}
+		val misc = new SubConf("misc") {
+			override protected def onExec(): Unit =
+				Misc.test
+		}
+		addSubcommand(speeds)
+		addSubcommand(test)
+		addSubcommand(misc)
+		requireSubcommand()
 	}
 	
 	def main(args: Array[String]): Unit = {
-		
-		testInsertionAndRetrievalSpeed("res/test-1.bTree", 50, 1000000, 10000)
+		val conf = new Conf(args)
+		conf.exec
 	}
 	
 }
