@@ -3,6 +3,7 @@ package oo_db
 import java.io.File
 
 import oo_db.OoDbTestDriver.Action._
+import oo_db.db.BTree
 import scalaz.std.option.optionSyntax._
 
 import scala.collection.mutable.{Map => MMap}

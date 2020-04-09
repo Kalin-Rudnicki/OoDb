@@ -1,10 +1,10 @@
 
 lazy val global = project
 	.in(file("."))
-	.aggregate(server)
+	.aggregate(db)
 
-lazy val server = project
-	.in(file("server")).settings(
+lazy val db = project
+	.in(file("db")).settings(
 	libraryDependencies += "org.scalaz" %% "scalaz-core" % "7.2.30"
 )
 

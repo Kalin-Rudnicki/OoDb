@@ -2,6 +2,7 @@ package oo_db
 
 import java.io.{File, RandomAccessFile}
 
+import oo_db.db.BTree
 import oo_db.utils.{Bytable, BytableRAF}
 
 import scala.util.Random
