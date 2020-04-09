@@ -3,9 +3,8 @@ package oo_db.db
 import java.io.File
 
 import scalaz.std.option.optionSyntax._
-
 import oo_db.db.nodes._
-import oo_db.utils.BytableRAF
+import oo_db.utils.{Bytable, BytableRAF}
 
 class IoManager(path: String) {
 	
@@ -138,7 +137,6 @@ class IoManager(path: String) {
 	
 	// Write
 	
-	// TODO : 2nd root split is not working properly
 	def insertRootNode(node: Node): Unit = {
 		insertNewNode(node)
 		setRoot(node.pos.some)
@@ -154,13 +152,12 @@ class IoManager(path: String) {
 		val (insertAt, popFree): (Long, Boolean) = freeListHead.fold((bTreeFile.length, false))(f => (f, true))
 		
 		if (node.pos != insertAt)
-			throw new RuntimeException("Attempt to insert node new node with invalid 'pos'")
+			throw new RuntimeException("Attempt to insert node new node with invalid 'pos', not at start of free list")
 		
 		bTreeFile.seek(insertAt)
 		
 		val nextFree: Option[Long] =
 			if (popFree) {
-				// TODO : Is this correct?
 				bTreeFile.seek(insertAt + 1)
 				val tmp = bTreeFile.readLong.some.flatMap(f => {
 					if (f == 0L)
@@ -188,6 +185,44 @@ class IoManager(path: String) {
 		}
 		
 		bTreeFile.writeBytable[Long](node.toList(order))
+	}
+	
+	// NOT-SURE
+	def deleteNode(node: Node, zeroOut: Boolean = false): Unit = {
+		bTreeFile.seek(node.pos)
+		val size = (order - 1) * 16
+		if (zeroOut)
+			bTreeFile.writeBytable[(Byte, Long, List[Long])](
+				(
+					BTree.FREE_LIST_MARKER,
+					freeListHead.getOrElse(0L),
+					List[Long]()
+				)
+			)(
+				Bytable.tuple3Bytable(
+					Bytable.byteBytable,
+					Bytable.longBytable,
+					new Bytable[List[Long]](
+						size,
+						_ => ???,
+						(_, bb) => 0.until(size).foreach(_ => bb.put(0.toByte))
+					)
+				)
+			)
+		else
+			bTreeFile.writeBytable[(Byte, Long)](
+				(
+					BTree.FREE_LIST_MARKER,
+					freeListHead.getOrElse(0L)
+				)
+			)(
+				Bytable.tuple2Bytable(
+					Bytable.byteBytable,
+					Bytable.longBytable
+				)
+			)
+		
+		setFreeList(node.pos.some)
 	}
 	
 }

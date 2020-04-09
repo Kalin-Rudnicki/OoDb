@@ -34,6 +34,7 @@ class BTree(private val io: IoManager) {
 	}
 	
 	def insert(key: Long, value: Long): Unit = {
+		// Helpers
 		def handleInsert(res: Option[(Node, Option[(Long, Node)])]): Option[(Long, Long)] = res match {
 			case None =>
 				None
@@ -64,24 +65,62 @@ class BTree(private val io: IoManager) {
 				)
 			}
 		
-		if (io.getHeight == 0) {
-			// Create root node, write it, and save root/height
-			val node: LeafNode = new LeafNode(io.nextFreePos, List(key), List(value), 0L)
-			io.insertRootNode(node)
-		}
-		else
+		// Action
+		if (io.getHeight > 0)
 			loop(1, io.getRoot) match {
 				case None =>
 				case Some((rightMin, pos)) =>
 					val newRoot: InternalNode = InternalNode(io.nextFreePos, List(rightMin), List(io.getRoot, pos))
 					io.insertRootNode(newRoot)
 			}
-		// io.showStats
+		else {
+			val node: LeafNode = new LeafNode(io.nextFreePos, List(key), List(value), 0L)
+			io.insertRootNode(node)
+		}
 	}
 	
-	def remove(key: Long): Unit = {
-		// TODO
-		throw new UnsupportedOperationException
+	def remove(key: Long): Option[Long] = {
+		// Helpers
+		/**
+		  * None =>
+		  * 	No deletion
+		  * Some((v, None, None)) =>
+		  * 	deleted key, which pointed to v
+		  * 	at this point in the stack, all merging has been handled
+		  * 	also, no keys need to be changed
+		  * Some((v, Some(n), None)) =>
+		  * 	deleted key, which pointed to v
+		  * 	after deletion cascaded from child, it is now too small, and needs to be handled
+		  * 	also, no keys need to be changed
+		  * Some((v, None, Some(k)) =>
+		  * 	deleted key, which pointed to v
+		  * 	at this point in the stack, all merging has been handled
+		  * 	key was the smallest in its leaf, and needs a new reference internally
+		  * 		this
+		  * Some((v, Some(n), Some(k)) =>
+		  * 	both previous cases need to be handled
+		  */
+		def loop(depth: Int, seek: Long): Option[(Long, Option[Node], Option[Long])] = {
+		
+		}
+		
+		
+		// Action
+		if (io.getHeight > 0)
+			loop(1, io.getRoot) match {
+				case None =>
+					None
+				case Some((v, None, None)) =>
+					v.some
+				case Some((v, Some(n), _)) =>
+					
+					v.some
+				case Some((v, None, Some(k))) =>
+					
+					v.some
+			}
+		else
+			None
 	}
 	
 }

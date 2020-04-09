@@ -54,6 +54,30 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 		loop(keys, values)
 	}
 	
+	def remove(key: Long): Option[(Long, Node, Option[Long])] = {
+		@tailrec
+		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(Long, Node, Option[Long])] = ((k, v): @unchecked) match {
+			case (Nil, Nil) =>
+				None
+			case (hK :: tK, hV :: tV) =>
+				if (hK > key)
+					loop(tK, tV, hK :: pK, hV :: pV)
+				else if (hK < key)
+					None
+				else
+					(
+						hV,
+						new LeafNode(pos, pK.reverse ::: tK, pV.reverse ::: pV, nextLeaf),
+						if (pV == Nil)
+							tV.head.some
+						else
+							None
+					).some
+		}
+		
+		loop(keys, values, Nil, Nil)
+	}
+	
 }
 
 object LeafNode {
