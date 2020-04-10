@@ -7,7 +7,9 @@ lazy val db = project
 	.in(file("db")).settings(
 	libraryDependencies ++= List(
 		"org.scalaz" %% "scalaz-core" % "7.2.30",
-		"org.rogach" %% "scallop" % "3.4.0"
+		"org.rogach" %% "scallop" % "3.4.0",
+		"org.scalactic" %% "scalactic" % "3.1.1",
+		"org.scalatest" %% "scalatest" % "3.1.1" % "test"
 		)
 )
 

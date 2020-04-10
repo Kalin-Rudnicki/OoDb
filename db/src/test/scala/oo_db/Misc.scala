@@ -2,8 +2,14 @@ package oo_db
 
 object Misc {
 	
-	def test: Unit = {
+	case class T(x: String)
 	
+	def test: Unit = {
+		
+		println(
+			T("Hello") == T("Hello")
+		)
+		
 	}
 	
 }

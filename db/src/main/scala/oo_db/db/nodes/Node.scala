@@ -46,11 +46,15 @@ trait Node {
 					pK.reverse ++ (key :: k),
 					pV.reverse ++ (value :: v)
 				).some
-			else if (key == hK)
-				(
-					pK.reverse ++ k,
-					pV.reverse ++ (value :: tV)
-				).some
+			else if (key == hK) {
+				if (value == hV)
+					None
+				else
+					(
+						pK.reverse ++ k,
+						pV.reverse ++ (value :: tV)
+					).some
+			}
 			else
 				afterInsert(key, value, tK, tV, hK :: pK, hV :: pV)
 	}

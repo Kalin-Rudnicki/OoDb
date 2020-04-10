@@ -101,7 +101,7 @@ class BTree(private val io: IoManager) {
 		  * 	both previous cases need to be handled
 		  */
 		def loop(depth: Int, seek: Long): Option[(Long, Option[Node], Option[Long])] = {
-		
+			???
 		}
 		
 		
