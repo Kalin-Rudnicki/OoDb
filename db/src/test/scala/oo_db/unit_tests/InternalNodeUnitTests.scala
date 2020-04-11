@@ -156,9 +156,63 @@ class InternalNodeUnitTests extends PathAnyFunSpec {
 				
 			}
 			
+			describe("(size 4):") {
+				
+				describe("node 1") {
+					
+					val node = new InternalNode(10, List(104, 106), List(203, 205, 207))
+					
+					describe("insert 1") {
+						
+						val afterInsert = node.insert(4, 20, 108, 209)
+						
+						it("should be modified") {
+							assert(afterInsert.isDefined)
+						}
+						
+						it("should not have split") {
+							assert(afterInsert.get._2.isEmpty)
+						}
+						
+					}
+					
+				}
+				
+				describe("node 2") {
+					
+					val node = new InternalNode(10, List(104, 106, 108), List(203, 205, 207, 209))
+					
+					describe("insert 1") {
+						
+						val afterInsert = node.insert(4, 20, 110, 211)
+						
+						it("should be modified") {
+							assert(afterInsert.isDefined)
+						}
+						
+						it("modified should equal") {
+							afterInsert.get._1 shouldEqual new InternalNode(10, List(104, 106), List(203, 205, 207))
+						}
+						
+						it("should have split") {
+							assert(afterInsert.get._2.isDefined)
+						}
+						
+						it("split should equal") {
+							afterInsert.get._2.get shouldEqual (108, new InternalNode(20, List(110), List(209, 211)))
+						}
+						
+					}
+					
+				}
+				
+			}
+			
 		}
 		
-		describe("Deletions") {
+		describe("Removals") {
+		
+		
 		
 		}
 		
