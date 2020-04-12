@@ -4,7 +4,7 @@ import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec
 
-case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: Long) extends Node {
+case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: Long) extends Node[LeafNode] {
 	// println(s"# LeafNode($pos, $keys, $values, $nextLeaf)")
 	
 	override def size: Int =
@@ -14,7 +14,7 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 		values.padTo(order - 1, 0L) ++ (nextLeaf :: keys).padTo(order, 0L)
 	
 	
-	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(Node, Option[(Long, Node)])] = {
+	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(LeafNode, Option[(Long, LeafNode)])] = {
 		afterInsert(key, value, keys, values, Nil, Nil) match {
 			case None =>
 				None
@@ -54,9 +54,9 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 		loop(keys, values)
 	}
 	
-	def remove(key: Long): Option[(Long, Node, Option[Option[Long]])] = {
+	def remove(key: Long): Option[(Long, LeafNode, Boolean)] = {
 		@tailrec
-		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(Long, Node, Option[Option[Long]])] = ((k, v): @unchecked) match {
+		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(Long, LeafNode, Boolean)] = ((k, v): @unchecked) match {
 			case (Nil, Nil) =>
 				None
 			case (hK :: tK, hV :: tV) =>
@@ -68,14 +68,26 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 					(
 						hV,
 						new LeafNode(pos, pK.reverse ::: tK, pV.reverse ::: tV, nextLeaf),
-						if (pK == Nil)
-							if (tK == Nil)
-								Some(None)
-							else
-								Some(Some(tK.head))
-						else
-							None
+						pK == Nil
 					).some
+		}
+		
+		loop(keys, values, Nil, Nil)
+	}
+	
+	def borrowFromEnd: (LeafNode, (Long, Long)) = {
+		@tailrec
+		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): (LeafNode, (Long, Long)) = ((k, v): @unchecked) match {
+			case (hK :: Nil, hV :: Nil) =>
+				(
+					LeafNode(pos, pV.reverse, pV.reverse, nextLeaf),
+					(
+						hK,
+						hV
+					)
+				)
+			case (hK :: tK, hV :: tV) =>
+				loop(tK, tV, hK :: pK, hV :: pV)
 		}
 		
 		loop(keys, values, Nil, Nil)

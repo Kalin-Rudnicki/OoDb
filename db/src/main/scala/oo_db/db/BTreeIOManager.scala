@@ -16,23 +16,31 @@ class IoManager(path: String) {
 	if (bTreeFile.readInt() != BTree.MAGIC_NUMBER)
 		throw new RuntimeException(s"'$path' is not a bTree")
 	
-	val order: Int = bTreeFile.readInt()
+	val order: Int = bTreeFile.readInt
+	val minKeys: Int = (order.toFloat / 2f).ceil.toInt - 1
+	
 	if (order < BTree.MIN_ORDER)
 		throw new RuntimeException(s"Something has gone seriously wrong... (order: $order)")
 	
 	private var height: Int = bTreeFile.readInt()
-	private var root: Option[Long] = bTreeFile.readLong.some.flatMap(r => {
-		if (r == 0L)
-			None
-		else
-			r.some
-	})
-	private var freeListHead: Option[Long] = bTreeFile.readLong.some.flatMap(f => {
-		if (f == 0L)
-			None
-		else
-			f.some
-	})
+	private var root: Option[Long] =
+		for (
+			r <- bTreeFile.readLong.some;
+			iN <-
+				if (r == 0)
+					None
+				else
+					r.some
+		) yield iN
+	private var freeListHead: Option[Long] =
+		for (
+			r <- bTreeFile.readLong.some;
+			iN <-
+				if (r == 0)
+					None
+				else
+					r.some
+		) yield iN
 	
 	def close: Unit =
 		bTreeFile.close
@@ -48,10 +56,10 @@ class IoManager(path: String) {
 		println
 		println("=====| BTree Stats |=====")
 		println(s"magicNumber: ${_magic}")
-		println(s"      order: ${_order}")
-		println(s"     height: ${_height}")
-		println(s"       root: ${_root}")
-		println(s"   freeList: ${_freeList}")
+		println(s"      order: ${_order}, $order")
+		println(s"     height: ${_height}, $height")
+		println(s"       root: ${_root}, $root")
+		println(s"   freeList: ${_freeList}, $freeListHead")
 		println(s"     length: ${bTreeFile.length}")
 		println
 		
@@ -82,9 +90,6 @@ class IoManager(path: String) {
 		freeListHead.getOrElse(bTreeFile.length)
 	}
 	
-	def getOrder: Int =
-		order
-	
 	def getHeight: Int =
 		height
 	
@@ -93,7 +98,7 @@ class IoManager(path: String) {
 	
 	// Write
 	
-	private def setRoot(r: Option[Long]): Unit = {
+	def setRoot(r: Option[Long]): Unit = {
 		bTreeFile.seek(BTree.ROOT_POSITION)
 		bTreeFile.writeLong(r.getOrElse(0L))
 		root = r
@@ -105,9 +110,9 @@ class IoManager(path: String) {
 		freeListHead = f
 	}
 	
-	private def setHeight(h: Int): Unit = {
+	def setHeight(h: Int): Unit = {
 		bTreeFile.seek(BTree.HEIGHT_POSITION)
-		bTreeFile.writeInt(height)
+		bTreeFile.writeInt(h)
 		height = h
 	}
 	
@@ -137,7 +142,7 @@ class IoManager(path: String) {
 	
 	// Write
 	
-	def insertRootNode(node: Node): Unit = {
+	def insertRootNode(node: Node[_]): Unit = {
 		insertNewNode(node)
 		setRoot(node.pos.some)
 		setHeight(height + 1)
@@ -148,7 +153,7 @@ class IoManager(path: String) {
 	  * if this nodes pos was not correctly set to that point,
 	  * an error will be thrown
 	  */
-	def insertNewNode(node: Node): Unit = {
+	def insertNewNode(node: Node[_]): Unit = {
 		val (insertAt, popFree): (Long, Boolean) = freeListHead.fold((bTreeFile.length, false))(f => (f, true))
 		
 		if (node.pos != insertAt)
@@ -177,7 +182,7 @@ class IoManager(path: String) {
 			setFreeList(nextFree)
 	}
 	
-	def writeNode(node: Node): Unit = {
+	def writeNode(node: Node[_]): Unit = {
 		bTreeFile.seek(node.pos)
 		node match {
 			case _: InternalNode => bTreeFile.writeByte(BTree.INTERNAL_NODE_MARKER)
@@ -188,7 +193,7 @@ class IoManager(path: String) {
 	}
 	
 	// NOT-SURE
-	def deleteNode(node: Node, zeroOut: Boolean = false): Unit = {
+	def deleteNode(node: Node[_], zeroOut: Boolean = false): Unit = {
 		bTreeFile.seek(node.pos)
 		val size = (order - 1) * 16
 		if (zeroOut)

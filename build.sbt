@@ -10,7 +10,8 @@ lazy val db = project
 		"org.rogach" %% "scallop" % "3.4.0",
 		"org.scalactic" %% "scalactic" % "3.1.1",
 		"org.scalatest" %% "scalatest" % "3.1.1" % "test"
-		)
+		),
+	ThisBuild / watchBeforeCommand := Watch.clearScreen
 )
 
 

@@ -4,7 +4,7 @@ import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec
 
-trait Node {
+trait Node[N] {
 	
 	def pos: Long
 	
@@ -31,7 +31,7 @@ trait Node {
 	  * 	It was also split, so the addition needs to be added with 'm' as the key,
 	  * 	and 'n2.pos' as the value
 	  */
-	def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(Node, Option[(Long, Node)])]
+	def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(N, Option[(Long, N)])]
 	
 	@tailrec
 	protected final def afterInsert(key: Long, value: Long, k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(List[Long], List[Long])] = ((k, v): @unchecked) match {

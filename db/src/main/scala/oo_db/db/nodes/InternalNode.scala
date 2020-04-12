@@ -4,7 +4,7 @@ import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec
 
-case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) extends Node {
+case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) extends Node[InternalNode] {
 	// println(s"# InternalNode($pos, $keys, $children)")
 	
 	override def size: Int =
@@ -16,7 +16,7 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 		else
 			children ++ keys
 	
-	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(Node, Option[(Long, Node)])] = {
+	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(InternalNode, Option[(Long, InternalNode)])] =
 		afterInsert(key, value, keys, children.tail, Nil, children.head :: Nil) match {
 			case None =>
 				None
@@ -38,7 +38,7 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 					).some
 				}
 		}
-	}
+	
 	
 	def childPos(key: Long): Long = {
 		@tailrec
@@ -53,6 +53,59 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 		}
 		
 		loop(keys, children)
+	}
+	
+	/**
+	  * @return (minKey, pos, left, right)
+	  */
+	def childAndNeighbors(key: Long): (Option[Long], Long, Option[Long], Option[(Long, Long)]) = {
+		// @tailrec
+		def loop(
+					pK: Option[Long],
+					k: List[Long],
+					pV: Long,
+					pV2: Option[Long],
+					v: List[Long]
+				): (Option[Long], Long, Option[Long], Option[(Long, Long)]) = ((k, v): @unchecked) match {
+			case (Nil, Nil) =>
+				(
+					pK,
+					pV,
+					pV2,
+					None
+				)
+			case (hK :: tK, hV :: tV) =>
+				if (key < hK)
+					((tK, tV): @unchecked) match {
+						case (Nil, Nil) =>
+							(
+								pK,
+								pV,
+								pV2,
+								None
+							)
+						case (nK :: _, nV :: _) =>
+							(
+								pK,
+								pV,
+								pV2,
+								(nK, nV).some
+							)
+					}
+				else
+					loop(hK.some, tK, hV, pV.some, tV)
+		}
+		
+		// TODO : Instead of tracking extra ahead, and doing more cases,
+		//      : keep track of history, and when a case is hit, pull from history
+		
+		loop(
+			None,
+			keys,
+			children.head,
+			None,
+			children.tail
+		)
 	}
 	
 }

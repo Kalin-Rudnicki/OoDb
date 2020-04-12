@@ -2,8 +2,10 @@ package oo_db.db
 
 import java.io.{File, RandomAccessFile}
 
+import oo_db.db.BTree.RemoveResult
 import scalaz.std.option.optionSyntax._
 import oo_db.db.nodes._
+import sun.rmi.runtime.Log
 
 import scala.annotation.tailrec
 
@@ -35,7 +37,7 @@ class BTree(private val io: IoManager) {
 	
 	def insert(key: Long, value: Long): Unit = {
 		// Helpers
-		def handleInsert(res: Option[(Node, Option[(Long, Node)])]): Option[(Long, Long)] = res match {
+		def handleInsert(res: Option[(Node[_], Option[(Long, Node[_])])]): Option[(Long, Long)] = res match {
 			case None =>
 				None
 			case Some((n1, None)) =>
@@ -55,13 +57,13 @@ class BTree(private val io: IoManager) {
 						None
 					case Some((newKey, newChild)) =>
 						handleInsert(
-							internalNode.insert(io.getOrder, io.nextFreePos, newKey, newChild)
+							internalNode.insert(io.order, io.nextFreePos, newKey, newChild)
 						)
 				}
 			}
 			else {
 				handleInsert(
-					io.readLeafNode(seek).insert(io.getOrder, io.nextFreePos, key, value)
+					io.readLeafNode(seek).insert(io.order, io.nextFreePos, key, value)
 				)
 			}
 		
@@ -96,31 +98,94 @@ class BTree(private val io: IoManager) {
 		  * 	deleted key, which pointed to v
 		  * 	at this point in the stack, all merging has been handled
 		  * 	key was the smallest in its leaf, and needs a new reference internally
-		  * 		this
+		  * 		this should only be Some if the first element is removed
 		  * Some((v, Some(n), Some(k)) =>
 		  * 	both previous cases need to be handled
 		  */
-		def loop(depth: Int, seek: Long): Option[(Long, Option[Node], Option[Long])] = {
-			???
+		/**
+		  * @param depth  : How deep you are into the tree
+		  * @param minKey : The last key you went to the "right" of (might be 1, or several levels up) (or even never if you hit the leftmost child leaf)
+		  * @param pos    : Position of the node you are currently searching
+		  * @param left   : The pos of the node to the left of you
+		  * @param right  : The (key, pos) of the node to the right of you
+		  * @return
+		  */
+		def loop(depth: Int, minKey: Option[Long], pos: Long, left: Option[Long], right: Option[(Long, Long)]): RemoveResult = { // TODO : More? Less?
+			if (depth < io.getHeight) { // Internal
+				val node = io.readInternalNode(pos)
+				val (nMinKey, nPos, nLeft, nRight) = node.childAndNeighbors(key)
+				val res = loop(depth + 1, nMinKey, nPos, nLeft, nRight)
+				
+				println(s"=====| $depth |=====")
+				println
+				println(s" minKey: $minKey")
+				println(s"    pos: $pos")
+				println(s"   left: $left")
+				println(s"  right: $right")
+				println
+				println(s"nMinKey: $nMinKey")
+				println(s"   nPos: $nPos")
+				println(s"  nLeft: $nLeft")
+				println(s" nRight: $nRight")
+				println
+				println(s"   res: $res")
+				println
+				
+				RemoveResult.NoAction // TODO
+			}
+			else {
+				io.readLeafNode(pos).remove(key) match {
+					case None =>
+						RemoveResult.NoAction
+					case Some((v, n, b)) =>
+						
+						(left, right) match {
+							case (Some(l), _) =>
+								val lNode = io.readLeafNode(l)
+								if (lNode.keys.length > io.minKeys) {
+									val (lNode2, (nK, nV)) = lNode.borrowFromEnd
+									val n2 = LeafNode(n.pos, nK :: n.keys, nV :: n.values, n.nextLeaf)
+									io.writeNode(lNode2)
+									io.writeNode(n2)
+									RemoveResult.BorrowedLeft(v, n.keys.head, lNode2, n2)
+								}
+								else
+									??? // TODO : merge left
+							case (_, Some(r)) =>
+								val rNode = io.readLeafNode(r._1)
+								if (rNode.keys.length > io.minKeys) {
+									val rNode2 = LeafNode(rNode.pos, rNode.keys.tail, rNode.values.tail, rNode.nextLeaf)
+									val n2 = LeafNode(n.pos, n.keys ::: rNode.keys.head :: Nil, n.values ::: rNode.values.head :: Nil, n.nextLeaf)
+									io.writeNode(rNode2)
+									io.writeNode(n2)
+									RemoveResult.BorrowedRight(v, rNode.keys.head, rNode2, n2)
+								}
+								else
+									??? // merge right
+							case _ => // I am root, should only be returning directly to call at "Action"
+								if (n.keys.isEmpty) {
+									io.deleteNode(n)
+									io.setRoot(None)
+									io.setHeight(0)
+									RemoveResult.RootRemoved(v)
+								}
+								else {
+									io.writeNode(n)
+									RemoveResult.RootReduced(v)
+								}
+						}
+				}
+			}
 		}
 		
 		
 		// Action
 		if (io.getHeight > 0)
-			loop(1, io.getRoot) match {
-				case None =>
-					None
-				case Some((v, None, None)) =>
-					v.some
-				case Some((v, Some(n), _)) =>
-					
-					v.some
-				case Some((v, None, Some(k))) =>
-					
-					v.some
-			}
-		else
+			loop(1, None, io.getRoot, None, None).value
+		else {
+			println("Action-3")
 			None
+		}
 	}
 	
 }
@@ -170,5 +235,31 @@ object BTree {
 		
 		new BTree(new IoManager(path))
 	}
+	
+	
+	sealed trait RemoveResult {
+		def value: Option[Long] // TODO : Is this necessary?
+	}
+	
+	abstract class RemoveResultV(val v: Long) extends RemoveResult {
+		override def value: Option[Long] = v.some
+	}
+	
+	object RemoveResult {
+		
+		case object NoAction extends RemoveResult {
+			override def value: Option[Long] = None
+		}
+		
+		case class RootRemoved(_v: Long) extends RemoveResultV(_v)
+		
+		case class RootReduced(_v: Long) extends RemoveResultV(_v)
+		
+		case class BorrowedLeft(_v: Long, nPrevMin: Long, newLeft: Node[_], newNode: Node[_]) extends RemoveResultV(_v)
+		
+		case class BorrowedRight(_v: Long, rPrevMin: Long, newRight: Node[_], newNode: Node[_]) extends RemoveResultV(_v)
+		
+	}
+	
 	
 }
