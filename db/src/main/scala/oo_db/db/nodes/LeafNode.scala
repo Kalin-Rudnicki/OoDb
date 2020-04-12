@@ -80,7 +80,7 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): (LeafNode, (Long, Long)) = ((k, v): @unchecked) match {
 			case (hK :: Nil, hV :: Nil) =>
 				(
-					LeafNode(pos, pV.reverse, pV.reverse, nextLeaf),
+					LeafNode(pos, pK.reverse, pV.reverse, nextLeaf),
 					(
 						hK,
 						hV

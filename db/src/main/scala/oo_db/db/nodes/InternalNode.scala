@@ -2,6 +2,9 @@ package oo_db.db.nodes
 
 import scalaz.std.option.optionSyntax._
 
+import scala.collection.mutable.{Map => MMap}
+import oo_db.db.BTree.{RemoveResult => R}
+import oo_db.db.BTree.{ParentChange => P}
 import scala.annotation.tailrec
 
 case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) extends Node[InternalNode] {
@@ -96,9 +99,6 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 					loop(hK.some, tK, hV, pV.some, tV)
 		}
 		
-		// TODO : Instead of tracking extra ahead, and doing more cases,
-		//      : keep track of history, and when a case is hit, pull from history
-		
 		loop(
 			None,
 			keys,
@@ -106,6 +106,46 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 			None,
 			children.tail
 		)
+	}
+	
+	def borrowFromEnd: (InternalNode, (Long, Long)) = {
+		@tailrec
+		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): (InternalNode, (Long, Long)) = ((k, v): @unchecked) match {
+			case (hK :: Nil, hV :: Nil) =>
+				(
+					InternalNode(pos, pV.reverse, pV.reverse),
+					(
+						hK,
+						hV
+					)
+				)
+			case (hK :: tK, hV :: tV) =>
+				loop(tK, tV, hK :: pK, hV :: pV)
+		}
+		
+		loop(keys, children.tail, Nil, children.head :: Nil)
+	}
+	
+	def handle(changes: MMap[Long, P]): Option[InternalNode] = {
+		@tailrec
+		def loop(anyChanges: Boolean, k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[InternalNode] = ((k, v): @unchecked) match {
+			case (Nil, Nil) =>
+				if (anyChanges)
+					InternalNode(pos, pK.reverse, pV.reverse).some
+				else
+					None
+			case (hK :: tK, hV :: tV) =>
+				changes.remove(hK) match {
+					case None =>
+						loop(anyChanges, tK, tV, hK :: pK, hV :: pV)
+					case Some(P.Delete) =>
+						loop(true, tK, tV, pK, pV)
+					case Some(P.Replace(r)) =>
+						loop(true, tK, tV, r :: pK, hV :: pV)
+				}
+		}
+		
+		loop(false, keys, children.tail, Nil, children.head :: Nil)
 	}
 	
 }

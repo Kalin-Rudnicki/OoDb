@@ -2,10 +2,11 @@ package oo_db.db
 
 import java.io.{File, RandomAccessFile}
 
-import oo_db.db.BTree.RemoveResult
+import scala.collection.mutable.{Map => MMap}
+import oo_db.db.BTree.{RemoveResult => R}
+import oo_db.db.BTree.{ParentChange => P}
 import scalaz.std.option.optionSyntax._
 import oo_db.db.nodes._
-import sun.rmi.runtime.Log
 
 import scala.annotation.tailrec
 
@@ -110,11 +111,11 @@ class BTree(private val io: IoManager) {
 		  * @param right  : The (key, pos) of the node to the right of you
 		  * @return
 		  */
-		def loop(depth: Int, minKey: Option[Long], pos: Long, left: Option[Long], right: Option[(Long, Long)]): RemoveResult = { // TODO : More? Less?
+		def loop(depth: Int, minKey: Option[Long], pos: Long, left: Option[Long], right: Option[(Long, Long)]): R = { // TODO : More? Less?
 			if (depth < io.getHeight) { // Internal
-				val node = io.readInternalNode(pos)
-				val (nMinKey, nPos, nLeft, nRight) = node.childAndNeighbors(key)
-				val res = loop(depth + 1, nMinKey, nPos, nLeft, nRight)
+				val n0 = io.readInternalNode(pos)
+				val (nMinKey, nPos, nLeft, nRight) = n0.childAndNeighbors(key)
+				val res = loop(depth + 1, nMinKey.fold(minKey)(m => m.some), nPos, nLeft, nRight)
 				
 				println(s"=====| $depth |=====")
 				println
@@ -131,49 +132,118 @@ class BTree(private val io: IoManager) {
 				println(s"   res: $res")
 				println
 				
-				RemoveResult.NoAction // TODO
+				res match {
+					case R.NoAction =>
+						res
+					case _: R.Handled =>
+						res
+					case r: R.Cascade =>
+						n0.handle(r.changes).foreach(n1 => {
+							if (n1.keys.length < io.minKeys)
+								(left, right) match {
+									case (Some(l), _) =>
+										val lNode = io.readInternalNode(l)
+										if (lNode.keys.length > io.minKeys) { // Borrow Left
+											val (lNode2, (nK, nV)) = lNode.borrowFromEnd
+											val n2 = InternalNode(n1.pos, minKey.get :: n1.keys, nV :: n1.children)
+											io.writeNode(lNode2)
+											io.writeNode(n2)
+											r.changes.put(minKey.get, P.Replace(nK))
+										}
+										else { // Merge Left
+											val lNode2 = InternalNode(lNode.pos, lNode.keys ::: minKey.get :: n1.keys, lNode.children ::: n1.children)
+											io.writeNode(lNode2)
+											io.deleteNode(n1)
+											r.changes.put(minKey.get, P.Delete)
+										}
+									case (_, Some((rKey, rVal))) =>
+										val rNode = io.readInternalNode(rVal)
+										if (rNode.keys.length > io.minKeys) { // Borrow Right
+											val rNode2 = InternalNode(rNode.pos, rNode.keys.tail, rNode.children.tail)
+											val n2 = InternalNode(n1.pos, n1.keys ::: rKey :: Nil, n1.children ::: rNode.children.head :: Nil)
+											io.writeNode(rNode2)
+											io.writeNode(n2)
+											r.changes.put(rKey, P.Replace(rNode.keys.head))
+										}
+										else { // Merge Right
+											val n2 = InternalNode(n1.pos, n1.keys ::: rKey :: rNode.keys, n1.children ::: rNode.children)
+											io.writeNode(n2)
+											io.deleteNode(rNode)
+											r.changes.put(rKey, P.Delete)
+										}
+									case _ => // I am root, should only be returning directly to call at "Action"
+										if (n1.keys.isEmpty) {
+											io.deleteNode(n1)
+											io.setRoot(n1.children.head.some)
+											io.setHeight(io.getHeight - 1)
+										}
+										else
+											io.writeNode(n1)
+								}
+							else
+								io.writeNode(n1)
+						})
+						r.pass
+				}
 			}
-			else {
-				io.readLeafNode(pos).remove(key) match {
+			else { // Leaf
+				val n0 = io.readLeafNode(pos)
+				n0.remove(key) match {
 					case None =>
-						RemoveResult.NoAction
-					case Some((v, n, b)) =>
+						R.NoAction
+					case Some((v, n1, b)) =>
+						val map: MMap[Long, P] = MMap()
+						if (b && n1.keys.nonEmpty)
+							minKey.foreach(m => map.put(m, P.Replace(n1.keys.head))) // doesnt add anything if it is the leftmost-leaf
 						
-						(left, right) match {
-							case (Some(l), _) =>
-								val lNode = io.readLeafNode(l)
-								if (lNode.keys.length > io.minKeys) {
-									val (lNode2, (nK, nV)) = lNode.borrowFromEnd
-									val n2 = LeafNode(n.pos, nK :: n.keys, nV :: n.values, n.nextLeaf)
-									io.writeNode(lNode2)
-									io.writeNode(n2)
-									RemoveResult.BorrowedLeft(v, n.keys.head, lNode2, n2)
-								}
-								else
-									??? // TODO : merge left
-							case (_, Some(r)) =>
-								val rNode = io.readLeafNode(r._1)
-								if (rNode.keys.length > io.minKeys) {
-									val rNode2 = LeafNode(rNode.pos, rNode.keys.tail, rNode.values.tail, rNode.nextLeaf)
-									val n2 = LeafNode(n.pos, n.keys ::: rNode.keys.head :: Nil, n.values ::: rNode.values.head :: Nil, n.nextLeaf)
-									io.writeNode(rNode2)
-									io.writeNode(n2)
-									RemoveResult.BorrowedRight(v, rNode.keys.head, rNode2, n2)
-								}
-								else
-									??? // merge right
-							case _ => // I am root, should only be returning directly to call at "Action"
-								if (n.keys.isEmpty) {
-									io.deleteNode(n)
-									io.setRoot(None)
-									io.setHeight(0)
-									RemoveResult.RootRemoved(v)
-								}
-								else {
-									io.writeNode(n)
-									RemoveResult.RootReduced(v)
-								}
-						}
+						if (n1.keys.length < io.minKeys)
+							(left, right) match {
+								case (Some(l), _) =>
+									val lNode = io.readLeafNode(l)
+									if (lNode.keys.length > io.minKeys) { // Borrow Left
+										val (lNode2, (nK, nV)) = lNode.borrowFromEnd
+										val n2 = LeafNode(n1.pos, nK :: n1.keys, nV :: n1.values, n1.nextLeaf)
+										io.writeNode(lNode2)
+										io.writeNode(n2)
+										map.put(minKey.get, P.Replace(n2.keys.head))
+									}
+									else { // Merge Left
+										val lNode2 = LeafNode(lNode.pos, lNode.keys ::: n1.keys, lNode.values ::: n1.values, n1.nextLeaf)
+										io.writeNode(lNode2)
+										io.deleteNode(n1)
+										map.put(minKey.get, P.Delete)
+									}
+									R.Cascade(v, map)
+								case (_, Some((rKey, rVal))) =>
+									val rNode = io.readLeafNode(rVal)
+									if (rNode.keys.length > io.minKeys) { // Borrow Right
+										val rNode2 = LeafNode(rNode.pos, rNode.keys.tail, rNode.values.tail, rNode.nextLeaf)
+										val n2 = LeafNode(n1.pos, n1.keys ::: rNode.keys.head :: Nil, n1.values ::: rNode.values.head :: Nil, n1.nextLeaf)
+										io.writeNode(rNode2)
+										io.writeNode(n2)
+										map.put(rKey, P.Replace(rNode2.keys.head))
+									}
+									else { // Merge Right
+										val n2 = LeafNode(n1.pos, n1.keys ::: rNode.keys, n1.values ::: rNode.values, rNode.nextLeaf)
+										io.writeNode(n2)
+										io.deleteNode(rNode)
+										map.put(rKey, P.Delete)
+									}
+									R.Cascade(v, map)
+								case _ => // I am root, should only be returning directly to call at "Action"
+									if (n1.keys.isEmpty) {
+										io.deleteNode(n1)
+										io.setRoot(None)
+										io.setHeight(0)
+										R.Handled(v)
+									}
+									else {
+										io.writeNode(n1)
+										R.Handled(v)
+									}
+							}
+						else
+							R.Cascade(v, map).pass
 				}
 			}
 		}
@@ -236,13 +306,22 @@ object BTree {
 		new BTree(new IoManager(path))
 	}
 	
+	// ParentAction
 	
-	sealed trait RemoveResult {
-		def value: Option[Long] // TODO : Is this necessary?
+	sealed trait ParentChange
+	
+	object ParentChange {
+		
+		case object Delete extends ParentChange
+		
+		case class Replace(replace: Long) extends ParentChange
+		
 	}
 	
-	abstract class RemoveResultV(val v: Long) extends RemoveResult {
-		override def value: Option[Long] = v.some
+	// RemoveResult
+	
+	sealed trait RemoveResult {
+		def value: Option[Long]
 	}
 	
 	object RemoveResult {
@@ -251,13 +330,19 @@ object BTree {
 			override def value: Option[Long] = None
 		}
 		
-		case class RootRemoved(_v: Long) extends RemoveResultV(_v)
+		abstract class Action(_v: Long) extends RemoveResult {
+			override def value: Option[Long] = _v.some
+		}
 		
-		case class RootReduced(_v: Long) extends RemoveResultV(_v)
+		case class Handled(v: Long) extends Action(v)
 		
-		case class BorrowedLeft(_v: Long, nPrevMin: Long, newLeft: Node[_], newNode: Node[_]) extends RemoveResultV(_v)
-		
-		case class BorrowedRight(_v: Long, rPrevMin: Long, newRight: Node[_], newNode: Node[_]) extends RemoveResultV(_v)
+		case class Cascade(v: Long, changes: MMap[Long, ParentChange]) extends Action(v) {
+			def pass: RemoveResult =
+				if (changes.isEmpty)
+					Handled(v)
+				else
+					this
+		}
 		
 	}
 	
