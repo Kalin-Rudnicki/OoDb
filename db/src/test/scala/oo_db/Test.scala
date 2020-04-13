@@ -15,9 +15,32 @@ object Test {
 		addSubcommand(
 			new SubConfReqSub("speeds") {
 				addSubcommand(
-					new SubConf("INSERT") {
-						// TODO
-						override protected def onExec(): Unit = ???
+					new SubConf("INSERT-GET-REMOVE") {
+						val path = opt[String](name = "path")
+						val order = opt[Int](name = "order")
+						val testSize = opt[Int](name = "test-size", short = 's')
+						val increments = opt[Int](name = "increments", default = 10.some)
+						
+						validate(testSize)(s => {
+							if (s > 0)
+								Right()
+							else
+								Left("test-size must be > 0")
+						})
+						validate(increments)(i => {
+							if (i > 0)
+								Right()
+							else
+								Left("increments must be > 0")
+						})
+						
+						override protected def onExec(): Unit =
+							Speeds.testInsertionRetrievalAndRemovalSpeed(
+								path.toOption.get,
+								order.toOption.get,
+								testSize.toOption.get,
+								testSize.toOption.get / increments.toOption.get
+							)
 					}
 				)
 			}
@@ -27,7 +50,7 @@ object Test {
 				val testSize = opt[Int](name = "test-size", required = true, short = 's')
 				val order = opt[Int](name = "order", required = true)
 				val path = opt[String](name = "path", default = "res/test.bTree".some)
-				val increment = opt[Int](name = "increment", default = 10.some)
+				val increments = opt[Int](name = "increment", default = 10.some)
 				
 				validate(testSize)(s => {
 					if (s > 0)
@@ -35,11 +58,11 @@ object Test {
 					else
 						Left("test-size must be > 0")
 				})
-				validate(increment)(i => {
+				validate(increments)(i => {
 					if (i > 0)
 						Right()
 					else
-						Left("increment must be > 0")
+						Left("increments must be > 0")
 				})
 				
 				override protected def onExec(): Unit = {
@@ -53,7 +76,7 @@ object Test {
 					val f = new File(p)
 					val map: MMap[Long, Long] = MMap()
 					
-					val _inc = s / increment.toOption.get
+					val _inc = s / increments.toOption.get
 					val inc =
 						if (_inc == 0)
 							1
@@ -94,7 +117,7 @@ object Test {
 						println("=====| REMOVE |=====")
 						var i = 0
 						val pairs = Random.shuffle(map.toStream).toList
-						val _inc2 = pairs.length / increment.toOption.get
+						val _inc2 = pairs.length / increments.toOption.get
 						val inc2 =
 							if (_inc2 == 0)
 								1
