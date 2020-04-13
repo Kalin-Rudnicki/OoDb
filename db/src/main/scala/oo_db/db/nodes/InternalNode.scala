@@ -19,11 +19,11 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 		else
 			children ++ keys
 	
-	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(InternalNode, Option[(Long, InternalNode)])] =
+	def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(InternalNode, Option[(Long, InternalNode)])] =
 		afterInsert(key, value, keys, children.tail, Nil, children.head :: Nil) match {
 			case None =>
 				None
-			case Some((newKeys, newValues)) =>
+			case Some((_, newKeys, newValues)) =>
 				if (newKeys.length < order)
 					(
 						new InternalNode(pos, newKeys, newValues),
@@ -79,22 +79,12 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 				)
 			case (hK :: tK, hV :: tV) =>
 				if (key < hK)
-					((tK, tV): @unchecked) match {
-						case (Nil, Nil) =>
-							(
-								pK,
-								pV,
-								pV2,
-								None
-							)
-						case (nK :: _, nV :: _) =>
-							(
-								pK,
-								pV,
-								pV2,
-								(nK, nV).some
-							)
-					}
+					(
+						pK,
+						pV,
+						pV2,
+						(hK, hV).some
+					)
 				else
 					loop(hK.some, tK, hV, pV.some, tV)
 		}
@@ -113,7 +103,7 @@ case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) exten
 		def loop(k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): (InternalNode, (Long, Long)) = ((k, v): @unchecked) match {
 			case (hK :: Nil, hV :: Nil) =>
 				(
-					InternalNode(pos, pV.reverse, pV.reverse),
+					InternalNode(pos, pK.reverse, pV.reverse),
 					(
 						hK,
 						hV

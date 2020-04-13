@@ -14,11 +14,17 @@ class BTree(private val io: IoManager) {
 	
 	// =====| General |=====
 	
+	def size: Int =
+		io.getSize
+	
 	def close: Unit =
 		io.close
 	
 	def showStats: Unit =
 		io.showStats
+	
+	def writeImage(path: String, message: Option[String] = None): Unit =
+		io.writeImage(path, message)
 	
 	// =====| Operations |=====
 	
@@ -63,9 +69,10 @@ class BTree(private val io: IoManager) {
 				}
 			}
 			else {
-				handleInsert(
-					io.readLeafNode(seek).insert(io.order, io.nextFreePos, key, value)
-				)
+				val res = io.readLeafNode(seek).insert(io.order, io.nextFreePos, key, value)
+				if (res.isDefined && res.get._1)
+					io.setSize(io.getSize + 1)
+				handleInsert(res.map(r => (r._2, r._3)))
 			}
 		
 		// Action
@@ -78,6 +85,7 @@ class BTree(private val io: IoManager) {
 			}
 		else {
 			val node: LeafNode = new LeafNode(io.nextFreePos, List(key), List(value), 0L)
+			io.setSize(1)
 			io.insertRootNode(node)
 		}
 	}
@@ -116,21 +124,6 @@ class BTree(private val io: IoManager) {
 				val n0 = io.readInternalNode(pos)
 				val (nMinKey, nPos, nLeft, nRight) = n0.childAndNeighbors(key)
 				val res = loop(depth + 1, nMinKey.fold(minKey)(m => m.some), nPos, nLeft, nRight)
-				
-				println(s"=====| $depth |=====")
-				println
-				println(s" minKey: $minKey")
-				println(s"    pos: $pos")
-				println(s"   left: $left")
-				println(s"  right: $right")
-				println
-				println(s"nMinKey: $nMinKey")
-				println(s"   nPos: $nPos")
-				println(s"  nLeft: $nLeft")
-				println(s" nRight: $nRight")
-				println
-				println(s"   res: $res")
-				println
 				
 				res match {
 					case R.NoAction =>
@@ -192,6 +185,7 @@ class BTree(private val io: IoManager) {
 					case None =>
 						R.NoAction
 					case Some((v, n1, b)) =>
+						io.setSize(io.getSize - 1)
 						val map: MMap[Long, P] = MMap()
 						if (b && n1.keys.nonEmpty)
 							minKey.foreach(m => map.put(m, P.Replace(n1.keys.head))) // doesnt add anything if it is the leftmost-leaf
@@ -242,18 +236,18 @@ class BTree(private val io: IoManager) {
 										R.Handled(v)
 									}
 							}
-						else
+						else {
+							io.writeNode(n1)
 							R.Cascade(v, map).pass
+						}
 				}
 			}
 		}
-		
 		
 		// Action
 		if (io.getHeight > 0)
 			loop(1, None, io.getRoot, None, None).value
 		else {
-			println("Action-3")
 			None
 		}
 	}
@@ -264,16 +258,6 @@ object BTree {
 	// Constants
 	val MAGIC_NUMBER: Int = 28366439
 	val MIN_ORDER: Int = 3
-	
-	val MAGIC_NUMBER_POSITION: Long = 0L // Int
-	val ORDER_POSITION: Long = 4L // Int
-	val HEIGHT_POSITION: Long = 8L // Int
-	val ROOT_POSITION: Long = 12L // Long
-	val FREE_LIST_POSITION: Long = 20L // Long
-	
-	val FREE_LIST_MARKER: Byte = 0
-	val INTERNAL_NODE_MARKER: Byte = 1
-	val LEAF_NODE_MARKER: Byte = 2
 	
 	// ...
 	
@@ -291,6 +275,7 @@ object BTree {
 		bTreeFile.writeInt(MAGIC_NUMBER) // Magic Number
 		bTreeFile.writeInt(order) // Order
 		bTreeFile.writeInt(0) // Height
+		bTreeFile.writeInt(0) // Size
 		bTreeFile.writeLong(0L) // Root
 		bTreeFile.writeLong(0L) // Free List
 		bTreeFile.close
@@ -330,7 +315,7 @@ object BTree {
 			override def value: Option[Long] = None
 		}
 		
-		abstract class Action(_v: Long) extends RemoveResult {
+		sealed abstract class Action(_v: Long) extends RemoveResult {
 			override def value: Option[Long] = _v.some
 		}
 		

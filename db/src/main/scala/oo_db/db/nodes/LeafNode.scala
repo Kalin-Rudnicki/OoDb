@@ -14,13 +14,14 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 		values.padTo(order - 1, 0L) ++ (nextLeaf :: keys).padTo(order, 0L)
 	
 	
-	override def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(LeafNode, Option[(Long, LeafNode)])] = {
+	def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(Boolean, LeafNode, Option[(Long, LeafNode)])] = {
 		afterInsert(key, value, keys, values, Nil, Nil) match {
 			case None =>
 				None
-			case Some((newKeys, newValues)) =>
+			case Some((added, newKeys, newValues)) =>
 				if (newKeys.length < order)
 					(
+						added,
 						new LeafNode(pos, newKeys, newValues, nextLeaf),
 						None
 					).some
@@ -29,6 +30,7 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 					val (values1, values2) = NodeUtils.takeFirst((order + 1) / 2, newValues)
 					val passBackVal = keys2.head
 					(
+						added,
 						new LeafNode(pos, keys1, values1, freeListStart),
 						(
 							passBackVal,
@@ -67,7 +69,7 @@ case class LeafNode(pos: Long, keys: List[Long], values: List[Long], nextLeaf: L
 				else
 					(
 						hV,
-						new LeafNode(pos, pK.reverse ::: tK, pV.reverse ::: tV, nextLeaf),
+						LeafNode(pos, pK.reverse ::: tK, pV.reverse ::: tV, nextLeaf),
 						pK == Nil
 					).some
 		}

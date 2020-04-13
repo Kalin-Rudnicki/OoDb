@@ -31,18 +31,20 @@ trait Node[N] {
 	  * 	It was also split, so the addition needs to be added with 'm' as the key,
 	  * 	and 'n2.pos' as the value
 	  */
-	def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(N, Option[(Long, N)])]
+	// def insert(order: Int, freeListStart: Long, key: Long, value: Long): Option[(N, Option[(Long, N)])]
 	
 	@tailrec
-	protected final def afterInsert(key: Long, value: Long, k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(List[Long], List[Long])] = ((k, v): @unchecked) match {
+	protected final def afterInsert(key: Long, value: Long, k: List[Long], v: List[Long], pK: List[Long], pV: List[Long]): Option[(Boolean, List[Long], List[Long])] = ((k, v): @unchecked) match {
 		case (Nil, Nil) =>
 			(
+				true,
 				(key :: pK).reverse,
 				(value :: pV).reverse
 			).some
 		case (hK :: tK, hV :: tV) =>
 			if (key < hK)
 				(
+					true,
 					pK.reverse ++ (key :: k),
 					pV.reverse ++ (value :: v)
 				).some
@@ -51,6 +53,7 @@ trait Node[N] {
 					None
 				else
 					(
+						false,
 						pK.reverse ++ k,
 						pV.reverse ++ (value :: tV)
 					).some

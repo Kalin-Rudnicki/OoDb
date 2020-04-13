@@ -29,7 +29,7 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should not have split") {
-							assert(afterInsert.get._2.isEmpty)
+							assert(afterInsert.get._3.isEmpty)
 						}
 						
 					}
@@ -47,7 +47,7 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should not have split") {
-							assert(afterInsert.get._2.isEmpty)
+							assert(afterInsert.get._3.isEmpty)
 						}
 						
 					}
@@ -75,7 +75,7 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should not have split") {
-							assert(afterInsert.get._2.isEmpty)
+							assert(afterInsert.get._3.isEmpty)
 						}
 						
 					}
@@ -99,11 +99,11 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should have split") {
-							assert(afterInsert.get._2.isDefined)
+							assert(afterInsert.get._3.isDefined)
 						}
 						
 						it("split should equal") {
-							afterInsert.get._2.get shouldEqual(104, LeafNode(20, List(104), List(204), 30))
+							afterInsert.get._3.get shouldEqual(104, LeafNode(20, List(104), List(204), 30))
 						}
 						
 					}
@@ -121,7 +121,7 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should not have split") {
-							assert(afterInsert.get._2.isEmpty)
+							assert(afterInsert.get._3.isEmpty)
 						}
 						
 					}
@@ -149,11 +149,11 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should have split") {
-							assert(afterInsert.get._2.isDefined)
+							assert(afterInsert.get._3.isDefined)
 						}
 						
 						it("split should equal") {
-							afterInsert.get._2.get shouldEqual(104, LeafNode(20, List(104), List(204), 30))
+							afterInsert.get._3.get shouldEqual(104, LeafNode(20, List(104), List(204), 30))
 						}
 						
 					}
@@ -171,11 +171,11 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should have split") {
-							assert(afterInsert.get._2.isDefined)
+							assert(afterInsert.get._3.isDefined)
 						}
 						
 						it("split should equal") {
-							afterInsert.get._2.get shouldEqual(105, LeafNode(20, List(105), List(205), 30))
+							afterInsert.get._3.get shouldEqual(105, LeafNode(20, List(105), List(205), 30))
 						}
 						
 					}
@@ -200,7 +200,7 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should not have split") {
-							assert(afterInsert.get._2.isEmpty)
+							assert(afterInsert.get._3.isEmpty)
 						}
 						
 					}
@@ -224,11 +224,11 @@ class LeafNodeUnitTests extends PathAnyFunSpec {
 						}
 						
 						it("should have split") {
-							assert(afterInsert.get._2.isDefined)
+							assert(afterInsert.get._3.isDefined)
 						}
 						
 						it("split should equal") {
-							afterInsert.get._2.get shouldEqual (104, LeafNode(20, List(104, 106), List(204, 206), 30))
+							afterInsert.get._3.get shouldEqual (104, LeafNode(20, List(104, 106), List(204, 206), 30))
 						}
 						
 					}

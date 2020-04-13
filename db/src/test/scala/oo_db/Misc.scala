@@ -1,40 +1,60 @@
 package oo_db
 
-import java.io.{File, IOException}
+import java.io.{File}
 
+import scala.collection.mutable.{Map => MMap}
 import oo_db.db.BTree
 import scalaz.std.option.optionSyntax._
+
+import scala.io.Source
 
 object Misc {
 	
 	def test: Unit = {
-	
+		
+		println
+		println
+		println("===============| Misc |====================")
+		
 		val path = "res/test-1.bTree"
 		new File(path).delete()
 		
-		val bTree = BTree.create(3, path)
+		val ins = Source.fromFile("db/src/test/res/in.txt").getLines.next.split(",").map(i => i.toInt)
+		val rem = Source.fromFile("db/src/test/res/out.txt").getLines.next.split(",").map(i => i.toInt)
+		
+		val map = MMap[Long, Long]()
+		val bTree = BTree.create(5, path)
+		
 		try {
 			
-			for (i <- 1.to(5))
+			ins.foreach(i => {
+				map.put(i, i * 10)
 				bTree.insert(i, i * 10)
+			})
 			
-			bTree.showStats
-			bTree.remove(5)
+			var count = 0
 			
-			bTree.showStats
-			bTree.remove(4)
+			bTree.writeImage(s"res/$count")
 			
-			bTree.showStats
-			bTree.remove(3)
+			val remove = (r: Long) => {
+				count += 1
+				println(s"$count) Removing: $r")
+				map.remove(r)
+				bTree.remove(r)
+				bTree.writeImage(s"res/$count", s"Removed $r".some)
+				if (bTree.size != map.size)
+					throw new RuntimeException(s"Size is wrong: ${bTree.size} != ${map.size}")
+			}
 			
-			bTree.showStats
-			bTree.remove(2)
+			// Remove stuff
 			
-			bTree.showStats
-			bTree.remove(1)
-			
+			rem.foreach(r => remove(r))
 		} finally {
+			/*
+			println
+			println("Final results:")
 			bTree.showStats
+			*/
 			
 			bTree.close
 			new File(path).delete()
