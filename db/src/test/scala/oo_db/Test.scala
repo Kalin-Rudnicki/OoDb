@@ -3,8 +3,8 @@ package oo_db
 import java.io.File
 
 import cli.ScallopUtils._
+import oo_db.db.b_tree.BTree
 import scalaz.std.option.optionSyntax._
-import oo_db.db.BTree
 
 import scala.collection.mutable.{Map => MMap}
 import scala.util.Random

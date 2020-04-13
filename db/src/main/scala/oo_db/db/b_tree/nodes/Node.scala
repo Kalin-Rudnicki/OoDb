@@ -1,4 +1,4 @@
-package oo_db.db.nodes
+package oo_db.db.b_tree.nodes
 
 import scalaz.std.option.optionSyntax._
 

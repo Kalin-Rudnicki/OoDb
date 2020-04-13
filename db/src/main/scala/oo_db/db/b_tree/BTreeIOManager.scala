@@ -1,13 +1,13 @@
-package oo_db.db
+package oo_db.db.b_tree
 
-import java.awt.{BasicStroke, Color, Font}
 import java.awt.image.BufferedImage
+import java.awt.{BasicStroke, Color, Font}
 import java.io.File
 
 import javax.imageio.ImageIO
-import scalaz.std.option.optionSyntax._
-import oo_db.db.nodes._
+import oo_db.db.b_tree.nodes._
 import oo_db.utils.{Bytable, BytableRAF}
+import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec
 

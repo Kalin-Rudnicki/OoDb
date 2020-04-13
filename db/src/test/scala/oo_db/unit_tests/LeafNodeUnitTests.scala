@@ -1,6 +1,6 @@
 package oo_db.unit_tests
 
-import oo_db.db.nodes.LeafNode
+import oo_db.db.b_tree.nodes.LeafNode
 import org.scalatest.Matchers._
 import org.scalatest.funspec.PathAnyFunSpec
 

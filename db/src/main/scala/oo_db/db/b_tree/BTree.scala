@@ -1,14 +1,12 @@
-package oo_db.db
+package oo_db.db.b_tree
 
 import java.io.{File, RandomAccessFile}
 
-import scala.collection.mutable.{Map => MMap}
-import oo_db.db.BTree.{RemoveResult => R}
-import oo_db.db.BTree.{ParentChange => P}
+import oo_db.db.b_tree.nodes._
 import scalaz.std.option.optionSyntax._
-import oo_db.db.nodes._
 
 import scala.annotation.tailrec
+import scala.collection.mutable.{Map => MMap}
 
 class BTree(private val io: IoManager) {
 	
