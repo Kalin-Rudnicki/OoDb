@@ -3,12 +3,10 @@ package oo_db.db.b_tree.nodes
 import scalaz.std.option.optionSyntax._
 
 import scala.collection.mutable.{Map => MMap}
-import oo_db.db.BTree.{RemoveResult => R}
-import oo_db.db.BTree.{ParentChange => P}
+import oo_db.db.b_tree.BTree.{ParentChange => P}
 import scala.annotation.tailrec
 
 case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) extends Node[InternalNode] {
-	// println(s"# InternalNode($pos, $keys, $children)")
 	
 	override def size: Int =
 		children.size

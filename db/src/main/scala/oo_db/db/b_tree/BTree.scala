@@ -10,6 +10,9 @@ import scala.collection.mutable.{Map => MMap}
 
 class BTree(private val io: IoManager) {
 	
+	import BTree.{RemoveResult => R}
+	import BTree.{ParentChange => P}
+	
 	// =====| General |=====
 	
 	def size: Int =

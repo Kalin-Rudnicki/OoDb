@@ -3,13 +3,10 @@ package oo_db.utils
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
 
-import scalaz.Functor
-
 import scala.annotation.tailrec
 
 // TODO : Experiment with Direct/NonDirect buffer
 class BytableRAF(file: File, mode: String) extends RandomAccessFile(file, mode) {
-	
 	
 	// Read
 	
@@ -19,7 +16,7 @@ class BytableRAF(file: File, mode: String) extends RandomAccessFile(file, mode) 
 		b.fromBytes(ByteBuffer.wrap(array))
 	}
 	
-	def readBytable[T](n: Int)(implicit b: Bytable[T]): List[T] = {
+	def readBytableList[T](n: Int)(implicit b: Bytable[T]): List[T] = {
 		val array: Array[Byte] = Array.ofDim(n * b.size)
 		readFully(array)
 		val bb: ByteBuffer = ByteBuffer.wrap(array)
@@ -29,6 +26,23 @@ class BytableRAF(file: File, mode: String) extends RandomAccessFile(file, mode) 
 			list = b.fromBytes(bb) :: list
 		})
 		list.reverse
+	}
+	
+	def readBytableArr[T](n: Int)(implicit b: Bytable[T]): Array[T] = {
+		val array: Array[Byte] = Array.ofDim(n * b.size)
+		readFully(array)
+		val bb: ByteBuffer = ByteBuffer.wrap(array)
+		
+		val array2: Array[T] = Array.ofDim(n).asInstanceOf[Array[T]]
+		@tailrec
+		def loop(i: Int): Unit =
+			if (i < n) {
+				array2(i) = b.fromBytes(bb)
+				loop(i + 1)
+			}
+		
+		loop(0)
+		array2
 	}
 	
 	

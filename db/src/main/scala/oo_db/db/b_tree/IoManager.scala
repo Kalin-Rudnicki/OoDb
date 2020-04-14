@@ -262,7 +262,7 @@ class IoManager(path: String) {
 	// Read
 	
 	private def readData: List[Long] =
-		bTreeFile.readBytable[Long](order * 2 - 1)
+		bTreeFile.readBytableList[Long](order * 2 - 1)
 	
 	
 	def readInternalNode(pos: Long): InternalNode = {
