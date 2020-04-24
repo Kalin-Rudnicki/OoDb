@@ -1,9 +1,9 @@
-package oo_db.db.b_tree.nodes
+package spyre.db.b_tree.nodes
 
 import scalaz.std.option.optionSyntax._
 
 import scala.collection.mutable.{Map => MMap}
-import oo_db.db.b_tree.BTree.{ParentChange => P}
+import spyre.db.b_tree.BTree.{ParentChange => P}
 import scala.annotation.tailrec
 
 case class InternalNode(pos: Long, keys: List[Long], children: List[Long]) extends Node[InternalNode] {

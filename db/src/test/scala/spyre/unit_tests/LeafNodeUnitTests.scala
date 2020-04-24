@@ -1,6 +1,6 @@
-package oo_db.unit_tests
+package spyre.unit_tests
 
-import oo_db.db.b_tree.nodes.LeafNode
+import spyre.db.b_tree.nodes.LeafNode
 import org.scalatest.Matchers._
 import org.scalatest.funspec.PathAnyFunSpec
 

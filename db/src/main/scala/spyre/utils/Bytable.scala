@@ -1,4 +1,4 @@
-package oo_db.utils
+package spyre.utils
 
 import java.nio.ByteBuffer
 

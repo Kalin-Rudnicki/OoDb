@@ -1,9 +1,9 @@
-package oo_db
+package spyre
 
 import java.io.File
 
-import oo_db.db.b_tree.BTree
-import oo_db.utils._
+import spyre.db.b_tree.BTree
+import spyre.utils._
 
 import scala.collection.mutable.{Map => MMap}
 import scalaz.std.option.optionSyntax._

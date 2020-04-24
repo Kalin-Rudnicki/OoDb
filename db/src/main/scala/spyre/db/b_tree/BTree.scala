@@ -1,8 +1,8 @@
-package oo_db.db.b_tree
+package spyre.db.b_tree
 
 import java.io.{File, RandomAccessFile}
 
-import oo_db.db.b_tree.nodes._
+import spyre.db.b_tree.nodes._
 import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec

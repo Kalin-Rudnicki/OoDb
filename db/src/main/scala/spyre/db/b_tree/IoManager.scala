@@ -1,12 +1,12 @@
-package oo_db.db.b_tree
+package spyre.db.b_tree
 
 import java.awt.image.BufferedImage
 import java.awt.{BasicStroke, Color, Font}
 import java.io.File
 
 import javax.imageio.ImageIO
-import oo_db.db.b_tree.nodes._
-import oo_db.utils.{Bytable, BytableRAF}
+import spyre.db.b_tree.nodes._
+import spyre.utils.{Bytable, BytableRAF}
 import scalaz.std.option.optionSyntax._
 
 import scala.annotation.tailrec

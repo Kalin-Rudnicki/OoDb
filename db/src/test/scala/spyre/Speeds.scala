@@ -1,8 +1,8 @@
-package oo_db
+package spyre
 
 import java.io.File
 
-import oo_db.db.b_tree.BTree
+import spyre.db.b_tree.BTree
 
 import scala.util.Random
 import scala.collection.mutable.{HashSet => HS}
