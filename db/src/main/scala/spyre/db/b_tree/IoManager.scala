@@ -32,24 +32,8 @@ class IoManager(path: String) {
 	private var height: Int = bTreeFile.readInt
 	private var size: Int = bTreeFile.readInt
 	
-	private var root: Option[Long] =
-		for (
-			r <- bTreeFile.readLong.some;
-			iN <-
-				if (r == 0)
-					None
-				else
-					r.some
-		) yield iN
-	private var freeListHead: Option[Long] =
-		for (
-			r <- bTreeFile.readLong.some;
-			iN <-
-				if (r == 0)
-					None
-				else
-					r.some
-		) yield iN
+	private var root: Option[Long] = bTreeFile.readMaybeLong
+	private var freeListHead: Option[Long] = bTreeFile.readMaybeLong
 	
 	def close: Unit =
 		bTreeFile.close

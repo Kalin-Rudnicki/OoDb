@@ -3,11 +3,25 @@ package spyre.utils
 import java.io.{File, RandomAccessFile}
 import java.nio.ByteBuffer
 
+import scalaz.std.option.optionSyntax._
+
 import scala.annotation.tailrec
 
 // TODO : Experiment with Direct/NonDirect buffer
 class BytableRAF(file: File, mode: String) extends RandomAccessFile(file, mode) {
-	
+
+	// Utils
+
+	def readMaybeLong: Option[Long] =
+		for (
+			r <- readLong.some;
+			iN <-
+				if (r == 0)
+					None
+				else
+					r.some
+		) yield iN
+
 	// Read
 	
 	def readBytable[T](implicit b: Bytable[T]): T = {
