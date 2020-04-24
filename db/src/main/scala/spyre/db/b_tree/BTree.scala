@@ -93,33 +93,6 @@ class BTree(private val io: IoManager) {
 	
 	def remove(key: Long): Option[Long] = {
 		// Helpers
-		/**
-		  * None =>
-		  * 	No deletion
-		  * Some((v, None, None)) =>
-		  * 	deleted key, which pointed to v
-		  * 	at this point in the stack, all merging has been handled
-		  * 	also, no keys need to be changed
-		  * Some((v, Some(n), None)) =>
-		  * 	deleted key, which pointed to v
-		  * 	after deletion cascaded from child, it is now too small, and needs to be handled
-		  * 	also, no keys need to be changed
-		  * Some((v, None, Some(k)) =>
-		  * 	deleted key, which pointed to v
-		  * 	at this point in the stack, all merging has been handled
-		  * 	key was the smallest in its leaf, and needs a new reference internally
-		  * 		this should only be Some if the first element is removed
-		  * Some((v, Some(n), Some(k)) =>
-		  * 	both previous cases need to be handled
-		  */
-		/**
-		  * @param depth  : How deep you are into the tree
-		  * @param minKey : The last key you went to the "right" of (might be 1, or several levels up) (or even never if you hit the leftmost child leaf)
-		  * @param pos    : Position of the node you are currently searching
-		  * @param left   : The pos of the node to the left of you
-		  * @param right  : The (key, pos) of the node to the right of you
-		  * @return
-		  */
 		def loop(depth: Int, minKey: Option[Long], pos: Long, left: Option[Long], right: Option[(Long, Long)]): R = { // TODO : More? Less?
 			if (depth < io.getHeight) { // Internal
 				val n0 = io.readInternalNode(pos)
@@ -256,12 +229,13 @@ class BTree(private val io: IoManager) {
 }
 
 object BTree {
+
 	// Constants
 	val MAGIC_NUMBER: Int = 28366439
 	val MIN_ORDER: Int = 3
-	
-	// ...
-	
+
+	// Getting a BTree instance
+
 	def create(order: Int, path: String): BTree = {
 		if (order < MIN_ORDER)
 			throw new IllegalArgumentException(s"order $order is less than min $MIN_ORDER")
